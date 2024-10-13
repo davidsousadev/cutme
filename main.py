@@ -1,10 +1,7 @@
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from flask_cors import CORS
-from models import db, URL
-from string_aleatoria import string 
-
-
-
+from url import db, URL
+from string_aleatoria import string
 
 urlpadrao = "https://cutme.vercel.app/"
 
