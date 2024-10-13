@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Curta</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1 id="url">{{ url }}</h1>
+    <button onclick="copyToClipboard()">Copiar URL</button>
+    <p><a href="index.html">Encurtar mais urls</a></p>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
