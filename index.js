@@ -6,11 +6,11 @@ const path = require('path');
 const app = express();
 const port = 3000;
 
+require('dotenv').config();
+
 const apiUrl = process.env.URL;
 const apiToken = process.env.RESTDB_TOKEN;
 const dominio = process.env.DOMINIO;
-
-require('dotenv').config();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
