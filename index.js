@@ -57,18 +57,36 @@ app.get('/lista', async (req, res) => {
 });
 
 app.post('/', async (req, res) => {
-  try {
-    const { url } = req.body; 
-    const randomString = generateRandomString(10); 
-    const urlcut = randomString; 
-    const newBody = { url, urlcut, views: 0 };
-    await axios.post(apiUrl, newBody, { headers });
-    const newUrl = dominio + urlcut;
-    res.status(201).json({ newUrl });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    try {
+      const { url } = req.body;
+      const existingEntry = await axios.get(apiUrl, { headers });
+  
+      const existingUrl = existingEntry.data.find(entry => entry.url === url);
+      if (existingUrl) {
+        const existingShortUrl = dominio + existingUrl.urlcut;
+        return res.status(200).json({ newUrl: existingShortUrl });
+      }
+      let urlcut;
+      let randomString;
+      let isUnique = false;
+  
+      while (!isUnique) {
+        randomString = generateRandomString(10);
+        const duplicateEntry = existingEntry.data.find(entry => entry.urlcut === randomString);
+        isUnique = !duplicateEntry;
+      }
+      urlcut = randomString;
+  
+      const newBody = { url, urlcut, views: 0 };
+      await axios.post(apiUrl, newBody, { headers });
+  
+      const newUrl = dominio + urlcut;
+      res.status(201).json({ newUrl });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
 
 app.get('/:urlcut', async (req, res) => {
     const { urlcut } = req.params;  
