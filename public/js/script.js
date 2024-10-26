@@ -23,11 +23,11 @@ const form = document.getElementById('urlForm');
                     resultSection.style.display = 'block';
                     copyButton.style.display = 'block';
                 } else {
-                    alert('Erro ao encurtar a URL: ' + data.error);
+                    mostrarNotificacaotexto('Erro ao encurtar a URL.');
                 }
             } catch (error) {
                 console.error('Erro:', error);
-                alert('Erro ao encurtar a URL.');
+                mostrarNotificacaotexto('Erro ao encurtar a URL.');
             }
         });
 
@@ -36,9 +36,15 @@ const form = document.getElementById('urlForm');
 
             navigator.clipboard.writeText(urlText)
                 .then(() => {
-                    alert('URL copiada para a área de transferência!');
+                    mostrarNotificacaotexto('URL copiada para a área de transferência!');
                 })
                 .catch(err => {
                     console.error('Erro ao copiar URL: ', err);
                 });
+        }
+
+        function mostrarNotificacaotexto(texto) {
+            const notificacao = criarNotificacao(texto);
+            adicionarNotificacaoAoContainer(notificacao);
+            gerenciarNotificacoes();
         }

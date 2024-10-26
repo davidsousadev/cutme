@@ -21,6 +21,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.use(express.static(path.join(__dirname, 'public')));
+
 const headers = {
     'Content-Type': 'application/json',
     'x-apikey': apiToken,
@@ -117,8 +119,6 @@ app.delete('/:id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(port, () => {
     console.log(`API rodando em http://localhost:${port}/`);
