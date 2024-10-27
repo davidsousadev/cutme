@@ -5,12 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cut Me</title>
     <link rel="icon" type="image/x-icon" href="imagens/favicon.ico">
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://libsme.vercel.app/src/notify/v2/notify.css">
-    
 </head>
 <body>
-    <header> <h1>Cut Me  </h1> <img src="imagens/cut.png" alt="cut icon"> </header>
+    <header> 
+        <h1>Cut Me</h1> 
+        <img src="imagens/cut.png" alt="cut icon"> 
+    </header>
     
     <form id="urlForm">
         <input type="text" id="urlInput" placeholder="Encurte sua URL" name="url" required>
@@ -19,12 +21,11 @@
 
     <h2 id="resultSection" style="display:none;">Sua URL encurtada:</h2>
     <p id="shortUrl"></p>
-    <button id="copyButton" style="display:none;" onclick="copyToClipboard()">Copiar URL</button>
+    <button id="copyButton" onclick="copyToClipboard()" style="display:none;">Copiar URL</button>
     <div id="containerNotificacoes"></div>
     
+    
 </body>
-<script src="/js/script.js" defer></script>
-    <script defer="" type="text/javascript" src="https://libsme.vercel.app/src/notify/v2/notify.js">
-
-    </script>
+<script defer type="module" src="https://libsme.vercel.app/src/notify/v2/notify.js"></script>
+<script src="js/script.js" defer></script>
 </html>
