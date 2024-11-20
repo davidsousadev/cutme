@@ -70,10 +70,18 @@ app.post('/', async (req, res) => {
 
         const existingEntry = await axios.get(apiUrl, { headers });
         const existingUrl = existingEntry.data.find(entry => entry.url === url);
-        
+
         if (existingUrl) {
+            // URL já existe, gera QR Code e retorna
             const existingShortUrl = dominio + existingUrl.urlcut;
-            return res.status(200).json({ newUrl: existingShortUrl });
+            const qrCodeBase64 = await QRCode.toDataURL(existingShortUrl, {
+                color: {
+                    dark: '#000', 
+                    light: '#FFF'
+                }
+            });
+
+            return res.status(200).json({ newUrl: existingShortUrl, qrCode: qrCodeBase64, urlcut: existingUrl.urlcut });
         }
 
         let urlcut;
@@ -88,18 +96,11 @@ app.post('/', async (req, res) => {
 
         urlcut = randomString;
 
-        const tmpDir = path.join(__dirname, 'tmp');
-        if (!fs.existsSync(tmpDir)) {
-            fs.mkdirSync(tmpDir);
-        }
-
-        const fileName = `${urlcut}.png`;
-        const filePath = path.join(tmpDir, fileName);
+        // Gera QR Code como Base64
         const urlQRCode = dominio + urlcut;
-
-        await QRCode.toFile(filePath, urlQRCode, {
+        const qrCodeBase64 = await QRCode.toDataURL(urlQRCode, {
             color: {
-                dark: '#000',
+                dark: '#000', 
                 light: '#FFF'
             }
         });
@@ -108,11 +109,16 @@ app.post('/', async (req, res) => {
         await axios.post(apiUrl, newBody, { headers });
 
         const newUrl = dominio + urlcut;
-        res.status(201).json({ newUrl, filePath: `tmp/${fileName}` });
+
+        // Retorna URL, Base64 do QR Code e a randomString para o nome do arquivo
+        res.status(201).json({ newUrl, qrCode: qrCodeBase64, urlcut: urlcut });
     } catch (error) {
+        console.error(error.message);
         res.status(500).json({ error: error.message });
     }
 });
+
+
 
 
 app.get('/:urlcut', async (req, res) => {
