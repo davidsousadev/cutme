@@ -75,13 +75,15 @@ input[type="submit"]:hover {
     background-color: #45a049;
 }
 
-img #qrcode_image{
-    max-width: 400px; 
-    display: none;
+img#qrcode_image{
+    width: 400px; 
 }
 
 @media (max-width: 400px) {
     form {
         width: 90%;
+    }
+    img#qrcode_image{
+        width: 90%;    
     }
 }

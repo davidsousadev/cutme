@@ -61,49 +61,59 @@ app.get('/lista', async (req, res) => {
 
 app.post('/', async (req, res) => {
     try {
-      const { url } = req.body;
-      const existingEntry = await axios.get(apiUrl, { headers });
-  
-      const existingUrl = existingEntry.data.find(entry => entry.url === url);
-      if (existingUrl) {
-        const existingShortUrl = dominio + existingUrl.urlcut;
-        return res.status(200).json({ newUrl: existingShortUrl });
-      }
-      let urlcut;
-      let randomString;
-      let isUnique = false;
-  
-      while (!isUnique) {
-        randomString = generateRandomString(10);
-        const duplicateEntry = existingEntry.data.find(entry => entry.urlcut === randomString);
-        isUnique = !duplicateEntry;
-      }
-      urlcut = randomString;
-      
-      const tmpDir = path.join(__dirname, 'tmp');
+        let { url } = req.body;
+
+        // Verifica e adiciona o protocolo caso esteja ausente
+        if (!/^(http|https|ftp|ftps):\/\//i.test(url)) {
+            url = `http://${url}`;
+        }
+
+        const existingEntry = await axios.get(apiUrl, { headers });
+        const existingUrl = existingEntry.data.find(entry => entry.url === url);
+        
+        if (existingUrl) {
+            const existingShortUrl = dominio + existingUrl.urlcut;
+            return res.status(200).json({ newUrl: existingShortUrl });
+        }
+
+        let urlcut;
+        let randomString;
+        let isUnique = false;
+
+        while (!isUnique) {
+            randomString = generateRandomString(10);
+            const duplicateEntry = existingEntry.data.find(entry => entry.urlcut === randomString);
+            isUnique = !duplicateEntry;
+        }
+
+        urlcut = randomString;
+
+        const tmpDir = path.join(__dirname, 'tmp');
         if (!fs.existsSync(tmpDir)) {
             fs.mkdirSync(tmpDir);
         }
 
         const fileName = `${urlcut}.png`;
         const filePath = path.join(tmpDir, fileName);
-        
-        await QRCode.toFile(filePath, url, {
+        const urlQRCode = dominio + urlcut;
+
+        await QRCode.toFile(filePath, urlQRCode, {
             color: {
-                dark: '#000',  
+                dark: '#000',
                 light: '#FFF'
             }
         });
 
-      const newBody = { url, urlcut, views: 0 };
-      await axios.post(apiUrl, newBody, { headers });
-      
-      const newUrl = dominio + urlcut;
-      res.status(201).json({ newUrl, filePath: `tmp/${fileName}` });
+        const newBody = { url, urlcut, views: 0 };
+        await axios.post(apiUrl, newBody, { headers });
+
+        const newUrl = dominio + urlcut;
+        res.status(201).json({ newUrl, filePath: `tmp/${fileName}` });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
 });
+
 
 app.get('/:urlcut', async (req, res) => {
     const { urlcut } = req.params;  
