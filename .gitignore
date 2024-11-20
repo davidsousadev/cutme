@@ -2,3 +2,5 @@ __pycache__
 .env
 instance/*
 node_modules
+tmp/*
+testes

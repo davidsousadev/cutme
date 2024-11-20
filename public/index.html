@@ -6,7 +6,6 @@
     <title>Cut Me</title>
     <link rel="icon" type="image/x-icon" href="imagens/favicon.ico">
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://libsme.vercel.app/src/notify/v2/notify.css">
 </head>
 <body>
     <header> 
@@ -20,12 +19,15 @@
     </form>
 
     <h2 id="resultSection" style="display:none;">Sua URL encurtada:</h2>
-    <p id="shortUrl"></p>
+    <a id="downloadQRCode" download="qrcode.png">
+        <img id="qrcode_image" alt="Erro ao gerar QR-Code" style="display:none;">
+    </a>
+    <a id="shortUrlLink" target="_blank" style="display:none;">
+        <p id="shortUrl"></p>
+    </a>
     <button id="copyButton" onclick="copyToClipboard()" style="display:none;">Copiar URL</button>
-    <div id="containerNotificacoes"></div>
     
-    
+    <script defer src="https://libsme.vercel.app/src/notify/v3/index.js" type="module"></script>
+    <script src="js/script.js" defer></script>
 </body>
-<script defer type="module" src="https://libsme.vercel.app/src/notify/v2/notify.js"></script>
-<script src="js/script.js" defer></script>
 </html>

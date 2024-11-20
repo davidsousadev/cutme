@@ -1,8 +1,9 @@
 const express = require('express');
-const cors = require('cors'); 
+const cors = require('cors');
 const axios = require('axios');
-
 const path = require('path');
+const fs = require('fs');
+const QRCode = require('qrcode');
 const app = express();
 const port = 3000;
 
@@ -22,6 +23,8 @@ app.use(cors({
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/tmp', express.static(path.join(__dirname, 'tmp')));
 
 const headers = {
     'Content-Type': 'application/json',
@@ -76,17 +79,31 @@ app.post('/', async (req, res) => {
         isUnique = !duplicateEntry;
       }
       urlcut = randomString;
-  
+      
+      const tmpDir = path.join(__dirname, 'tmp');
+        if (!fs.existsSync(tmpDir)) {
+            fs.mkdirSync(tmpDir);
+        }
+
+        const fileName = `${urlcut}.png`;
+        const filePath = path.join(tmpDir, fileName);
+        
+        await QRCode.toFile(filePath, url, {
+            color: {
+                dark: '#000',  
+                light: '#FFF'
+            }
+        });
+
       const newBody = { url, urlcut, views: 0 };
       await axios.post(apiUrl, newBody, { headers });
-  
+      
       const newUrl = dominio + urlcut;
-      res.status(201).json({ newUrl });
+      res.status(201).json({ newUrl, filePath: `tmp/${fileName}` });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
-  });
-  
+});
 
 app.get('/:urlcut', async (req, res) => {
     const { urlcut } = req.params;  
@@ -106,7 +123,6 @@ app.get('/:urlcut', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
 
 app.get('/:id', async (req, res) => {
     const { id } = req.params;

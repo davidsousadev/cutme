@@ -74,6 +74,12 @@ input[type="submit"]:hover {
 #copyButton:hover {
     background-color: #45a049;
 }
+
+img #qrcode_image{
+    max-width: 400px; 
+    display: none;
+}
+
 @media (max-width: 400px) {
     form {
         width: 90%;

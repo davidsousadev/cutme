@@ -1,6 +1,9 @@
 const form = document.getElementById('urlForm');
 const resultSection = document.getElementById('resultSection');
 const shortUrlElement = document.getElementById('shortUrl');
+const shortUrlLink = document.getElementById('shortUrlLink');
+const qrcodeImage = document.getElementById('qrcode_image');
+const downloadQRCode = document.getElementById('downloadQRCode');
 const copyButton = document.getElementById('copyButton');
 
 form.addEventListener('submit', async (event) => {
@@ -19,7 +22,15 @@ form.addEventListener('submit', async (event) => {
         const data = await response.json();
 
         if (response.ok) {
+            
             shortUrlElement.innerText = data.newUrl; 
+            shortUrlLink.href = data.newUrl;
+            shortUrlLink.style.display = 'block';
+
+            qrcodeImage.src = data.filePath;
+            qrcodeImage.style.display = 'block';
+            downloadQRCode.href = data.filePath;
+
             resultSection.style.display = 'block';
             copyButton.style.display = 'block';
             mostrarNotificacao('Sua URL foi encurtada com sucesso!');
@@ -41,5 +52,6 @@ function copyToClipboard() {
         })
         .catch(err => {
             console.error('Erro ao copiar URL: ', err);
+            mostrarNotificacao('Erro ao copiar URL.');
         });
 }
