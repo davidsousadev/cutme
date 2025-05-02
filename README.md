@@ -1,6 +1,9 @@
-# 🚀 Encurtador de URL com Node.js, Express e RESTful API
+# 🚀 Cut Me - Seu encurtador de links e QR code
 
-Este projeto é um encurtador de URL simples, construído com Node.js e Express, que permite encurtar links, gerar QR Codes e acompanhar o número de visualizações. As URLs encurtadas podem ser acessadas, editadas e excluídas via API REST.
+![Banner](https://raw.githubusercontent.com/davidsousadev/cutme/refs/heads/main/public/imagens/banner.png)
+
+## Descrição: Encurtador de URL com Node.js, Express e RESTful API
+> Este projeto é um encurtador de URL simples, construído com Node.js e Express, que permite encurtar links, gerar QR Codes e acompanhar o número de visualizações. As URLs encurtadas podem ser acessadas, editadas e excluídas via API REST.
 
 ## 📦 Recursos
 
