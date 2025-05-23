@@ -1,35 +1,44 @@
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-const path = require('path');
-const fs = require('fs');
-const QRCode = require('qrcode');
-const app = express();
-const port = 3000;
+import dotenv from 'dotenv';
+dotenv.config();
 
-const swaggerJsDoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
+import express, { json, urlencoded } from 'express';
+import cors from 'cors';
+import axios from 'axios';
+import fs from 'fs';
+import { toDataURL } from 'qrcode';
 
+import swaggerJsDoc from 'swagger-jsdoc';
+import { serve, setup } from 'swagger-ui-express';
 
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
-require('dotenv').config();
-
+// Constantes de ambiente
 const apiUrl = process.env.URL;
 const apiToken = process.env.RESTDB_TOKEN;
 const dominio = process.env.DOMINIO;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const app = express();
+const port = 3000;
 
+// Configuração __dirname para ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Middlewares principais
+app.use(json());
+app.use(urlencoded({ extended: true }));
+
+// CORS configurado
 app.use(cors({
     origin: apiUrl,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/tmp', express.static(path.join(__dirname, 'tmp')));
+// Servir arquivos estáticos
+app.use(express.static(join(__dirname, 'public')));
+app.use('/tmp', express.static(join(__dirname, 'tmp')));
 
 const headers = {
     'Content-Type': 'application/json',
@@ -45,7 +54,6 @@ function generateRandomString(length) {
     }
     return result;
 }
-
 
 // Configuração do Swagger
 const swaggerOptions = {
@@ -67,7 +75,7 @@ const swaggerOptions = {
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use('/api-docs', serve, setup(swaggerDocs));
 
 /**
  * @swagger
@@ -84,7 +92,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.get('/', async (req, res) => {
     try {
         const response = await axios.get(apiUrl, { headers });
-        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        res.sendFile(join(__dirname, 'public', 'index.html'));
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -115,20 +123,23 @@ app.get('/listar', async (req, res) => {
  * @swagger
  * /lista:
  *   get:
- *     summary: Listar URLs encurtadas com paginação
- *     description: Retorna uma lista de URLs encurtadas cadastradas com paginação.
+ *     summary: Listar URLs encurtadas (últimos registros primeiro) com paginação
+ *     description: >
+ *       Retorna uma lista de URLs encurtadas cadastradas, ordenadas do mais recente para o mais antigo.
+ *       É possível utilizar paginação através dos parâmetros de query `page` e `limit`.
+ *       Por padrão, retorna os **10 últimos registros**.
  *     parameters:
  *       - in: query
  *         name: page
  *         required: false
- *         description: Número da página para paginar os resultados. Default é 1.
+ *         description: Número da página para paginação (padrão é 1).
  *         schema:
  *           type: integer
  *           default: 1
  *       - in: query
  *         name: limit
  *         required: false
- *         description: Número de itens por página. Default é 10.
+ *         description: Número de itens por página (padrão é 10).
  *         schema:
  *           type: integer
  *           default: 10
@@ -142,43 +153,56 @@ app.get('/listar', async (req, res) => {
  *               properties:
  *                 data:
  *                   type: array
+ *                   description: Lista das URLs encurtadas.
  *                   items:
  *                     type: object
  *                     properties:
  *                       url:
  *                         type: string
  *                         description: A URL original.
+ *                         example: https://exemplo.com
  *                       urlcut:
  *                         type: string
- *                         description: O código encurtado.
+ *                         description: Código encurtado da URL.
+ *                         example: abc123
  *                       views:
  *                         type: integer
- *                         description: O número de visualizações.
+ *                         description: Número de visualizações da URL encurtada.
+ *                         example: 42
  *                 pagination:
  *                   type: object
+ *                   description: Informações sobre a paginação.
  *                   properties:
  *                     total:
  *                       type: integer
  *                       description: Total de URLs disponíveis.
+ *                       example: 100
  *                     page:
  *                       type: integer
  *                       description: Página atual.
+ *                       example: 1
  *                     limit:
  *                       type: integer
  *                       description: Limite de itens por página.
- *     500:
- *       description: Erro ao buscar as URLs.
+ *                       example: 10
+ *       500:
+ *         description: Erro interno ao buscar as URLs.
  */
 app.get('/lista', async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;  // Página atual (default: 1)
-        const limit = parseInt(req.query.limit) || 10; // Limite de itens por página (default: 10)
-        const skip = (page - 1) * limit;  // Calcula o deslocamento para a consulta
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
 
-        const response = await axios.get(`${apiUrl}?skip=${skip}&limit=${limit}`, { headers });
-        
+        // Dados paginados e ordenados (últimos registros)
+        const response = await axios.get(
+            `${apiUrl}?q={}&h={"$orderby":{"_id":-1},"$skip":${skip},"$max":${limit}}`,
+            { headers }
+        );
+
+        // Total de registros
         const totalResponse = await axios.get(apiUrl, { headers });
-        const total = totalResponse.data.length;  // Total de URLs disponíveis
+        const total = totalResponse.data.length;
 
         res.json({
             data: response.data,
@@ -192,7 +216,6 @@ app.get('/lista', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
 
 /**
  * @swagger
@@ -246,7 +269,7 @@ app.post('/', async (req, res) => {
         if (existingUrl) {
             // URL já existe, gera QR Code e retorna
             const existingShortUrl = dominio + existingUrl.urlcut;
-            const qrCodeBase64 = await QRCode.toDataURL(existingShortUrl, {
+            const qrCodeBase64 = await toDataURL(existingShortUrl, {
                 color: {
                     dark: '#000',
                     light: '#FFF'
@@ -270,7 +293,7 @@ app.post('/', async (req, res) => {
 
         // Gera QR Code como Base64
         const urlQRCode = dominio + urlcut;
-        const qrCodeBase64 = await QRCode.toDataURL(urlQRCode, {
+        const qrCodeBase64 = await toDataURL(urlQRCode, {
             color: {
                 dark: '#000',
                 light: '#FFF'
@@ -390,7 +413,7 @@ app.post('/custom', async (req, res) => {
         if (existingUrl) {
             // URL já existe, gera QR Code e retorna
             const existingShortUrl = dominio + existingUrl.urlcut;
-            const qrCodeBase64 = await QRCode.toDataURL(existingShortUrl, {
+            const qrCodeBase64 = await toDataURL(existingShortUrl, {
                 color: {
                     dark: '#000',
                     light: '#FFF'
@@ -407,7 +430,7 @@ app.post('/custom', async (req, res) => {
 
         // Gera QR Code como Base64
         const urlQRCode = dominio + urlcut;
-        const qrCodeBase64 = await QRCode.toDataURL(urlQRCode, {
+        const qrCodeBase64 = await toDataURL(urlQRCode, {
             color: {
                 dark: '#000',
                 light: '#FFF'
@@ -426,7 +449,6 @@ app.post('/custom', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
 
 /**
  * @swagger
