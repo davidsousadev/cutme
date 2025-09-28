@@ -1,14 +1,13 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import express, { json, urlencoded } from 'express';
+import express, { json, urlencoded, Router } from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import fs from 'fs';
 import { toDataURL } from 'qrcode';
 
 import swaggerJsDoc from 'swagger-jsdoc';
-import { serve, setup } from 'swagger-ui-express';
 
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -66,8 +65,12 @@ const swaggerOptions = {
         },
         servers: [
             {
-                url: `http://localhost:${port}`,
-                description: 'Servidor local',
+                url: `https://cutme.vercel.app`, // produção
+                description: 'Servidor Produção',
+            },
+            {
+                url: `http://localhost:${port}`, // local
+                description: 'Servidor Local',
             },
         ],
     },
@@ -75,7 +78,38 @@ const swaggerOptions = {
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
-app.use('/api-docs', serve, setup(swaggerDocs));
+
+const swaggerRouter = Router();
+swaggerRouter.get("/", (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="pt-br">
+        <head>
+          <meta charset="UTF-8">
+          <title>Swagger UI</title>
+          <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+        </head>
+        <body>
+          <div id="swagger-ui"></div>
+          <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+          <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
+          <script>
+            window.onload = () => {
+              SwaggerUIBundle({
+                spec: ${JSON.stringify(swaggerDocs)},
+                dom_id: '#swagger-ui',
+                presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+                layout: "BaseLayout"
+              });
+            }
+          </script>
+        </body>
+      </html>
+    `);
+});
+
+app.use('/api-docs', swaggerRouter);
+
 
 /**
  * @swagger
