@@ -1,14 +1,14 @@
+import express, { json, urlencoded, Router } from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import express, { json, urlencoded, Router } from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import fs from 'fs';
 import { toDataURL } from 'qrcode';
+import cookieParser from 'cookie-parser';
 
-import swaggerJsDoc from 'swagger-jsdoc';
-
+import swaggerSpec from './swaggerOptions.js';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -27,6 +27,7 @@ const __dirname = dirname(__filename);
 // Middlewares principais
 app.use(json());
 app.use(urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // CORS configurado
 app.use(cors({
@@ -45,6 +46,7 @@ const headers = {
     'Cache-Control': 'no-cache'
 };
 
+// Função auxiliar
 function generateRandomString(length) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
@@ -54,31 +56,7 @@ function generateRandomString(length) {
     return result;
 }
 
-// Configuração do Swagger
-const swaggerOptions = {
-    definition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'API de Encurtador de URL',
-            version: '1.0.0',
-            description: 'Documentação da API de Encurtador de URL usando Swagger.',
-        },
-        servers: [
-            {
-                url: `https://cutme.vercel.app`, // produção
-                description: 'Servidor Produção',
-            },
-            {
-                url: `http://localhost:${port}`, // local
-                description: 'Servidor Local',
-            },
-        ],
-    },
-    apis: ['./index.js'], // Arquivos onde estão as rotas documentadas
-};
-
-const swaggerDocs = swaggerJsDoc(swaggerOptions);
-
+/* ---------------- Swagger ---------------- */
 const swaggerRouter = Router();
 swaggerRouter.get("/", (req, res) => {
     res.send(`
@@ -96,7 +74,7 @@ swaggerRouter.get("/", (req, res) => {
           <script>
             window.onload = () => {
               SwaggerUIBundle({
-                spec: ${JSON.stringify(swaggerDocs)},
+                spec: ${JSON.stringify(swaggerSpec)},
                 dom_id: '#swagger-ui',
                 presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
                 layout: "BaseLayout"
@@ -107,35 +85,85 @@ swaggerRouter.get("/", (req, res) => {
       </html>
     `);
 });
-
 app.use('/api-docs', swaggerRouter);
 
+/* ---------------- Cookies / Login ---------------- */
 
-/**
- * @swagger
- * /:
- *   get:
- *     summary: Página principal
- *     description: Retorna a página principal do projeto.
- *     responses:
- *       200:
- *         description: Página carregada com sucesso.
- *       500:
- *         description: Erro interno do servidor.
- */
+// Usuário fixo para exemplo
+const USER = process.env.LOGIN_USER || "admin";
+const PASS = process.env.LOGIN_PASS || "123456";
+
+// Middleware de autenticação
+function authMiddleware(req, res, next) {
+    const session = req.cookies.session;
+    if (session === "12345") {
+        next();
+    } else {
+        res.redirect("/login");
+    }
+}
+
+/* ---------------- Página principal protegida ---------------- */
 app.get('/', async (req, res) => {
-    try {
-        const response = await axios.get(apiUrl, { headers });
-        res.sendFile(join(__dirname, 'public', 'index.html'));
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    let html = fs.readFileSync(join(__dirname, 'public', 'index.html'), 'utf-8');
+
+    // Se tiver cookie de sessão, mostra "Sair", senão mostra "Login"
+    if (req.cookies.session === "12345") {
+        html = html.replace(
+            /<a[^>]*id="auth-button"[^>]*>.*?<\/a>/,
+            '<a href="/logout" id="auth-button" class="login-button">Sair</a>'
+        );
+    } else {
+        html = html.replace(
+            /<a[^>]*id="auth-button"[^>]*>.*?<\/a>/,
+            '<a href="/login" id="auth-button" class="login-button">Login</a>'
+        );
+    }
+
+    res.send(html);
+});
+
+
+// Página de login
+app.get('/login', (req, res) => {
+    // Se já estiver logado, manda pro index
+    if (req.cookies.session === "12345") {
+        return res.redirect("/");
+    }
+    res.sendFile(join(__dirname, 'public', 'login.html'));
+});
+
+// Processa login
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    if (username === USER && password === PASS) {
+        res.cookie("session", "12345", { httpOnly: true, maxAge: 3600000 }); // 1h
+        res.redirect("/");
+    } else {
+        res.send("Usuário ou senha inválidos! <a href='/login'>Tente novamente</a>");
     }
 });
+
+// Logout
+app.get('/logout', (req, res) => {
+    res.clearCookie("session");
+    res.redirect("/login");
+});
+
+app.listen(port, () => {
+    console.log(`API rodando em http://localhost:${port}/`);
+});
+
+
+/* ---------------- Rotas da API ---------------- */
 
 /**
  * @swagger
  * /listar:
+ * 
  *   get:
+ *     tags:
+ *       - URLS
  *     summary: Listar URLs encurtadas
  *     description: Retorna uma lista de todas as URLs encurtadas cadastradas.
  *     responses:
@@ -157,6 +185,8 @@ app.get('/listar', async (req, res) => {
  * @swagger
  * /lista:
  *   get:
+ *     tags:
+ *       - URLS
  *     summary: Listar URLs encurtadas (últimos registros primeiro) com paginação
  *     description: >
  *       Retorna uma lista de URLs encurtadas cadastradas, ordenadas do mais recente para o mais antigo.
@@ -239,12 +269,13 @@ app.get('/lista', async (req, res) => {
         const total = totalResponse.data.length;
 
         res.json({
-            data: response.data,
+            info: `${dominio}/lista?page=INT&skip=INT&limit=INT`,
             pagination: {
                 total,
                 page,
                 limit
-            }
+            },
+            data: response.data
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -255,6 +286,8 @@ app.get('/lista', async (req, res) => {
  * @swagger
  * /:
  *   post:
+ *     tags:
+ *       - URLS
  *     summary: Encurtar uma URL
  *     description: Recebe uma URL, verifica se já existe, gera uma URL encurtada e retorna a URL e QR Code gerados.
  *     requestBody:
@@ -351,6 +384,8 @@ app.post('/', async (req, res) => {
  * @swagger
  * /{urlcut}:
  *   get:
+ *     tags:
+ *       - URLS
  *     summary: Redirecionar para a URL original
  *     description: Recebe o código encurtado (urlcut) e redireciona para a URL original.
  *     parameters:
@@ -391,7 +426,10 @@ app.get('/:urlcut', async (req, res) => {
 /**
  * @swagger
  * /custom:
+ * 
  *   post:
+ *     tags:
+ *       - URLS
  *     summary: Encurtar uma URL com código personalizado
  *     description: Recebe uma URL e um código personalizado, verifica se o código não existe no banco, e retorna a URL encurtada com o QR Code.
  *     requestBody:
@@ -488,6 +526,8 @@ app.post('/custom', async (req, res) => {
  * @swagger
  * /id/{id}:
  *   get:
+ *     tags:
+ *       - URLS
  *     summary: Buscar informações de uma URL encurtada pelo ID
  *     description: Recebe o ID da URL encurtada e retorna as informações da URL.
  *     parameters:
@@ -518,6 +558,8 @@ app.get('/id/:id', async (req, res) => {
  * @ swagger
  * /{id}:
  *   put:
+ *     tags:
+ *       - URLS
  *     summary: Atualizar informações de uma URL encurtada
  *     description: Atualiza as informações de uma URL encurtada pelo ID.
  *     parameters:
@@ -563,6 +605,8 @@ app.get('/id/:id', async (req, res) => {
  * @ swagger
  * /{id}:
  *   delete:
+ *     tags:
+ *       - URLS
  *     summary: Excluir uma URL encurtada
  *     description: Exclui uma URL encurtada pelo ID.
  *     parameters:
@@ -591,6 +635,3 @@ app.delete('/:id', async (req, res) => {
 });
 */
 
-app.listen(port, () => {
-    console.log(`API rodando em http://localhost:${port}/`);
-});

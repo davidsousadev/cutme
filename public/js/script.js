@@ -19,6 +19,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     copyButton.addEventListener('click', copyToClipboard);
 
+    function dados(data) {
+        shortUrlElement.innerText = data.newUrl;
+        shortUrlLink.href = data.newUrl;
+        shortUrlLink.style.display = 'block';
+        qrcodeImage.src = data.qrCode;
+        qrcodeImage.style.display = 'block';
+        downloadQRCode.href = data.qrCode;
+        downloadQRCode.download = `${data.urlcut}.png`;
+        downloadQRCode.style.display = 'block';
+        resultSection.style.display = 'block';
+        copyButton.style.display = 'inline-block';
+        mostrarNotificacao('Sua URL foi encurtada com sucesso!');
+    }
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         const url = urlInput.value;
@@ -32,20 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ url })
             });
 
-            const data = await response.json();
+            let data = await response.json();
 
             if (response.ok) {
-                shortUrlElement.innerText = data.newUrl;
-                shortUrlLink.href = data.newUrl;
-                shortUrlLink.style.display = 'block';
-                qrcodeImage.src = data.qrCode; 
-                qrcodeImage.style.display = 'block';
-                downloadQRCode.href = data.qrCode;
-                downloadQRCode.download = `${data.urlcut}.png`; 
-                downloadQRCode.style.display = 'block';
-                resultSection.style.display = 'block';
-                copyButton.style.display = 'inline-block';
-                mostrarNotificacao('Sua URL foi encurtada com sucesso!');
+                dados(data); 
             } else {
                 mostrarNotificacao('Erro ao encurtar a URL.');
             }

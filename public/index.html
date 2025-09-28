@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,27 +8,77 @@
     <link rel="icon" type="image/x-icon" href="imagens/favicon.ico">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-    <header> 
-        <h1>Cut Me</h1> 
-        <img src="imagens/cut.png" alt="cut icon"> 
-    </header>
-    
-    <form id="urlForm">
-        <input type="text" id="urlInput" placeholder="Encurte sua URL" name="url" required>
-        <input type="submit" value="Encurtar">
-    </form>
 
-    <h2 id="resultSection" style="display:none;">Sua URL encurtada:</h2>
-    <a id="downloadQRCode">
-        <img id="qrcode_image" alt="Erro ao gerar QR-Code" style="display:none; width: 400px;">
-    </a>
-    <a id="shortUrlLink" target="_blank" style="display:none;" rel="noopener noreferrer">
-        <p id="shortUrl"></p>
-    </a>
-    <button id="copyButton" onclick="copyToClipboard()" style="display:none;">Copiar URL</button>
-    <footer>Feito com ❤️ por <a href="https://github.com/davidsousadev" target="_blank">David Sousa</a></footer>
+<body>
+    <header>
+        <div class="logo">
+            <img src="imagens/cut.png" alt="cut icon">
+            <h1>Cut Me</h1>
+        </div>
+        <a href="/login" id="auth-button" class="login-button">Login</a>
+    </header>
+
+    <main>
+        <form id="urlForm">
+            <input type="text" id="urlInput" placeholder="Encurte sua URL" name="url" required>
+            <input type="submit" value="Encurtar">
+        </form>
+
+        <section id="resultSection" style="display:none;">
+            <h2>Sua URL encurtada:</h2>
+            <a id="shortUrlLink" target="_blank" rel="noopener noreferrer">
+                <p id="shortUrl"></p>
+            </a>
+            <a id="downloadQRCode">
+                <img id="qrcode_image" alt="Erro ao gerar QR-Code" style="display:none;">
+            </a>
+            <button id="copyButton" onclick="copyToClipboard()">Copiar URL</button>
+        </section>
+    </main>
+
+    <footer>
+        Feito com ❤️ por <a href="https://github.com/davidsousadev" target="_blank">David Sousa</a>
+    </footer>
+
     <script defer src="https://libsme.vercel.app/src/notify/v3/index.js" type="module"></script>
     <script src="js/script.js" defer></script>
+
+<script defer>
+    // Função para ler cookies
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+    // Função para deletar cookies
+    function deleteCookie(name) {
+        document.cookie = `${name}=; path=/; max-age=0`;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const authButton = document.getElementById("auth-button");
+        const session = getCookie("session");
+        console.log(session);
+
+        if (session === "12345") {
+            console.log("Usuário está logado!");
+            authButton.textContent = "Sair";
+            authButton.href = "#";
+            authButton.addEventListener("click", (e) => {
+                e.preventDefault();
+                deleteCookie("session");
+                console.log("Usuário fez logout, cookie removido.");
+                location.reload();
+            });
+        } else {
+            console.log("Usuário não está logado.");
+        }
+    });
+</script>
+
+
 </body>
+
 </html>
