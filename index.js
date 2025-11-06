@@ -635,3 +635,85 @@ app.delete('/:id', async (req, res) => {
 });
 */
 
+/**
+ * @swagger
+ * /link/{termo}:
+ *   get:
+ *     tags:
+ *       - URLS
+ *     summary: Exibir a URL encurtada e QR Code
+ *     description: Retorna uma página com o link encurtado e o QR Code correspondente.
+ *     parameters:
+ *       - in: path
+ *         name: termo
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: O código gerado para a URL encurtada.
+ *     responses:
+ *       200:
+ *         description: Página HTML com link e QR Code exibidos.
+ *       404:
+ *         description: URL não encontrada.
+ *       500:
+ *         description: Erro ao processar a requisição.
+ */
+app.get('/link/:termo', async (req, res) => {
+    try {
+        const { termo } = req.params;
+        const response = await axios.get(apiUrl, { headers });
+        const entry = response.data.find(entry => entry.urlcut === termo);
+
+        if (!entry) {
+            return res.status(404).send('<h1>URL não encontrada 😢</h1>');
+        }
+
+        const shortUrl = dominio + entry.urlcut;
+        const qrCodeBase64 = await toDataURL(shortUrl, {
+            color: {
+                dark: '#000',
+                light: '#FFF'
+            }
+        });
+
+        // Retorna uma página HTML simples com link e QR code
+        res.send(`
+            <!DOCTYPE html>
+            <html lang="pt-br">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Cut Me - Link</title>
+                <link rel="stylesheet" href="/css/style.css">
+            </head>
+            <body>
+                <main style="text-align:center; margin-top:50px;">
+                    <h2>Sua URL encurtada:</h2>
+                    <a href="${shortUrl}" target="_blank" rel="noopener noreferrer">${shortUrl}</a>
+                    <br><br>
+                    <img src="${qrCodeBase64}" alt="QR Code">
+                    <br>
+                    
+                    <a href="${qrCodeBase64}" download="${entry.urlcut}.png">Baixar QR Code</a>
+
+                    <br>
+
+                    <a id="downloadQRCode">
+                    <img id="qrcode_image" alt="Erro ao gerar QR-Code" style="display:none;">
+                    </a>
+
+                    <br>
+                    <button onclick="navigator.clipboard.writeText('${shortUrl}').then(()=>alert('URL copiada!'))">
+                        Copiar URL
+                    </button>
+                </main>
+            </body>
+            <script defer src="https://libsme.vercel.app/src/notify/v3/index.js" type="module"></script>
+            <script src="/js/script.js" defer></script>
+            </html>
+        `);
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send('<h1>Erro ao processar o link 😵</h1>');
+    }
+});
